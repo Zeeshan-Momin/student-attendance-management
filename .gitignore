@@ -1,0 +1,33 @@
+# Java / Maven
+backend/target/
+backend/.mvn/
+backend/*.log
+
+# Node / React
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.env
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Secrets
+.env
+.env.local
+.env.*.local
+**/application-local.properties
+**/secrets.*
+
+# Logs
+*.log
+
+# Database
+data/
+*.db
+*.sqlite
+!.env.example

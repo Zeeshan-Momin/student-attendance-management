@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-card border border-slate-200;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition;
+}
+
+.btn-secondary {
+  @apply bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition;
+}
+
+.input {
+  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500;
+}
