@@ -1,5 +1,7 @@
+import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, BookOpen, GraduationCap, Users } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const data = [
@@ -12,6 +14,62 @@ const data = [
 
 export default function AdminDashboardPage() {
   const { user, logout } = useAuth();
+  const [students, setStudents] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/students');
+        setStudents(response.data || []);
+        setError('');
+      } catch (err) {
+        setError('Unable to load student records right now.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, []);
+
+  const departments = useMemo(
+    () => [...new Set(students.map((student) => student.department).filter(Boolean))].sort(),
+    [students]
+  );
+
+  const filteredStudents = useMemo(() => {
+    const normalizedQuery = searchTerm.trim().toLowerCase();
+
+    return students.filter((student) => {
+      const searchableText = [
+        student.fullName,
+        student.email,
+        student.rollNumber,
+        student.department
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      const matchesSearch = !normalizedQuery || searchableText.includes(normalizedQuery);
+      const matchesDepartment = !departmentFilter || student.department === departmentFilter;
+      const matchesStatus = !statusFilter || (student.accountStatus || '').toLowerCase() === statusFilter.toLowerCase();
+
+      return matchesSearch && matchesDepartment && matchesStatus;
+    });
+  }, [students, searchTerm, departmentFilter, statusFilter]);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDepartmentFilter('');
+    setStatusFilter('');
+  };
 
   const stats = [
     { label: 'Total Students', value: '1,240', icon: GraduationCap },
@@ -61,6 +119,101 @@ export default function AdminDashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </div>
+
+        <div className="mt-6 card p-5">
+          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Student management</p>
+              <h3 className="text-lg font-semibold text-slate-800">Students</h3>
+            </div>
+            <p className="text-sm text-slate-500">{filteredStudents.length} of {students.length} students</p>
+          </div>
+
+          <div className="mb-4 grid gap-3 md:grid-cols-[minmax(0,2fr)_180px_180px_auto]">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="input"
+              placeholder="Search by name, email, roll number, or department"
+              aria-label="Search students"
+            />
+
+            <select
+              value={departmentFilter}
+              onChange={(event) => setDepartmentFilter(event.target.value)}
+              className="input"
+              aria-label="Filter students by department"
+            >
+              <option value="">All departments</option>
+              {departments.map((department) => (
+                <option key={department} value={department}>{department}</option>
+              ))}
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="input"
+              aria-label="Filter students by account status"
+            >
+              <option value="">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+
+            <button type="button" onClick={clearFilters} className="btn-secondary">
+              Clear filters
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              Loading student records...
+            </div>
+          ) : error ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-600">
+              No students match the current search and filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-0 text-left text-sm text-slate-700">
+                <thead>
+                  <tr>
+                    <th className="border-b border-slate-200 bg-slate-50 px-3 py-2 font-semibold">Name</th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-3 py-2 font-semibold">Roll No.</th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-3 py-2 font-semibold">Email</th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-3 py-2 font-semibold">Department</th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-3 py-2 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((student) => (
+                    <tr key={student.id} className="odd:bg-white even:bg-slate-50">
+                      <td className="border-b border-slate-200 px-3 py-3 font-medium text-slate-800">{student.fullName}</td>
+                      <td className="border-b border-slate-200 px-3 py-3">{student.rollNumber}</td>
+                      <td className="border-b border-slate-200 px-3 py-3">{student.email}</td>
+                      <td className="border-b border-slate-200 px-3 py-3">{student.department || '—'}</td>
+                      <td className="border-b border-slate-200 px-3 py-3">
+                        <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium
+                          {student.accountStatus === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' :
+                            student.accountStatus === 'SUSPENDED' ? 'bg-amber-100 text-amber-700' :
+                            'bg-slate-200 text-slate-700'}">
+                          {student.accountStatus || 'ACTIVE'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
